@@ -37,6 +37,11 @@ func (sud SetUpContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 		return newCtx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "Tx must be GasTx")
 	}
 
+	if ctx.BlockGasMeter() != nil && gasTx.GetGas() > ctx.BlockGasMeter().Limit() {
+		newCtx = SetGasMeter(simulate, ctx, 0)
+		return newCtx, sdkerrors.Wrapf(sdkerrors.ErrInvalidGasLimit, "gas limit %d exceeds block gas limit %d", gasTx.GetGas(), ctx.BlockGasMeter().Limit())
+	}
+
 	newCtx = SetGasMeter(simulate, ctx, gasTx.GetGas())
 
 	// Decorator will catch an OutOfGasPanic caused in the next antehandler
