@@ -39,7 +39,7 @@ func (sud SetUpContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate
 
 	if ctx.BlockGasMeter() != nil && gasTx.GetGas() > ctx.BlockGasMeter().Limit() {
 		newCtx = SetGasMeter(simulate, ctx, 0)
-		return newCtx, sdkerrors.Wrapf(sdkerrors.ErrInvalidGasLimit, "gas limit %d exceeds block gas limit %d", gasTx.GetGas(), ctx.BlockGasMeter().Limit())
+		return newCtx, sdkerrors.Wrapf(sdkerrors.ErrOutOfGas, "gas limit %d exceeds block gas limit %d", gasTx.GetGas(), ctx.BlockGasMeter().Limit())
 	}
 
 	newCtx = SetGasMeter(simulate, ctx, gasTx.GetGas())
