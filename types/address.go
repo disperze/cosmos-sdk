@@ -674,6 +674,6 @@ func cacheBech32Addr(prefix string, addr []byte, cache *simplelru.LRU, cacheKey 
 	if err != nil {
 		panic(err)
 	}
-	cache.Add(cacheKey, bech32Addr)
+	// cache.Add(cacheKey, bech32Addr)
 	return bech32Addr
 }
