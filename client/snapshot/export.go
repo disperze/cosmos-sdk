@@ -2,10 +2,12 @@ package snapshot
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/spf13/cobra"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // ExportSnapshotCmd returns a command to take a snapshot of the application state
@@ -16,7 +18,12 @@ func ExportSnapshotCmd(appCreator servertypes.AppCreator) *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := server.GetServerContextFromCmd(cmd)
+			level := ctx.Viper.GetString("log_level")
 
+			logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+
+			fmt.Println("FMT: Log level:", level)
+			logger.Debug("Log level:", "level", level)
 			height, err := cmd.Flags().GetInt64("height")
 			if err != nil {
 				return err
