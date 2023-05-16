@@ -23,7 +23,9 @@ func ExportSnapshotCmd(appCreator servertypes.AppCreator) *cobra.Command {
 			logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 
 			fmt.Println("FMT: Log level:", level)
-			logger.Debug("Log level:", "level", level)
+			logger.Debug("Log level:" + level)
+			ctx.Logger.Debug("Log level:" + level)
+			ctx.Logger.Info("Log level:" + level)
 			height, err := cmd.Flags().GetInt64("height")
 			if err != nil {
 				return err
