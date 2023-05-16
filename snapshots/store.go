@@ -3,6 +3,7 @@ package snapshots
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 	"hash"
 	"io"
 	"math"
@@ -275,6 +276,7 @@ func (s *Store) Save(
 	}
 	snapshot.Chunks = index
 	snapshot.Hash = snapshotHasher.Sum(nil)
+	fmt.Println("FMT: Save snapshot completed!")
 	return snapshot, s.saveSnapshot(snapshot)
 }
 

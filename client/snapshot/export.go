@@ -2,12 +2,10 @@ package snapshot
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/spf13/cobra"
-	"github.com/tendermint/tendermint/libs/log"
 )
 
 // ExportSnapshotCmd returns a command to take a snapshot of the application state
@@ -18,14 +16,6 @@ func ExportSnapshotCmd(appCreator servertypes.AppCreator) *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := server.GetServerContextFromCmd(cmd)
-			level := ctx.Viper.GetString("log_level")
-
-			logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-
-			fmt.Println("FMT: Log level:", level)
-			logger.Debug("Log level:" + level)
-			ctx.Logger.Debug("Log level:" + level)
-			ctx.Logger.Info("Log level:" + level)
 			height, err := cmd.Flags().GetInt64("height")
 			if err != nil {
 				return err
@@ -37,12 +27,14 @@ func ExportSnapshotCmd(appCreator servertypes.AppCreator) *cobra.Command {
 				return err
 			}
 
+			defer db.Close()
 			app := appCreator(ctx.Logger, db, nil, ctx.Viper)
 
 			if height == 0 {
 				height = app.CommitMultiStore().LastCommitID().Version
 			}
 
+			ctx.Logger.Debug("Exporting snapshot", "height", height)
 			fmt.Printf("Exporting snapshot for height %d\n", height)
 
 			sm := app.SnapshotManager()
@@ -51,6 +43,7 @@ func ExportSnapshotCmd(appCreator servertypes.AppCreator) *cobra.Command {
 				return err
 			}
 
+			ctx.Logger.Info("Snapshot created at height %d, format %d, chunks %d\n", snapshot.Height, snapshot.Format, snapshot.Chunks)
 			fmt.Printf("Snapshot created at height %d, format %d, chunks %d\n", snapshot.Height, snapshot.Format, snapshot.Chunks)
 			return nil
 		},

@@ -754,6 +754,8 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 	for key := range rs.stores {
 		switch store := rs.GetCommitKVStore(key).(type) {
 		case *iavl.Store:
+			fmt.Println("FMT: Store key:" + key.Name())
+			rs.logger.Debug("Store key:" + key.Name())
 			stores = append(stores, namedStore{name: key.Name(), Store: store})
 		case *transient.Store, *mem.Store:
 			// Non-persisted stores shouldn't be snapshotted
@@ -772,11 +774,14 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 	// and the following messages contain a SnapshotNode (i.e. an ExportNode). Store changes
 	// are demarcated by new SnapshotStore items.
 	for _, store := range stores {
+		fmt.Println("FMT: Exporting:" + store.name)
+		rs.logger.Debug("Exporting:" + store.name)
 		exporter, err := store.Export(int64(height))
 		if err != nil {
 			return err
 		}
 		defer exporter.Close()
+		fmt.Println("FMT: Exported")
 		err = protoWriter.WriteMsg(&snapshottypes.SnapshotItem{
 			Item: &snapshottypes.SnapshotItem_Store{
 				Store: &snapshottypes.SnapshotStoreItem{
@@ -788,6 +793,8 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 			return err
 		}
 
+		fmt.Println("FMT: Exporting nodes")
+		rs.logger.Debug("Exporting nodes")
 		for {
 			node, err := exporter.Next()
 			if err == iavltree.ExportDone {
