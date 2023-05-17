@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	iavltree "github.com/cosmos/iavl"
 	protoio "github.com/gogo/protobuf/io"
@@ -769,19 +770,26 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 		return strings.Compare(stores[i].name, stores[j].name) == -1
 	})
 
+	// list with store names
+	storeNames := make([]string, len(stores))
+	for i, store := range stores {
+		storeNames[i] = store.name
+	}
+	total := len(storeNames)
+	fmt.Printf("Stores to export (%d): %s\n", total, strings.Join(storeNames, ","))
+
 	// Export each IAVL store. Stores are serialized as a stream of SnapshotItem Protobuf
 	// messages. The first item contains a SnapshotStore with store metadata (i.e. name),
 	// and the following messages contain a SnapshotNode (i.e. an ExportNode). Store changes
 	// are demarcated by new SnapshotStore items.
 	for _, store := range stores {
-		fmt.Println("FMT: Exporting:" + store.name)
-		rs.logger.Debug("Exporting:" + store.name)
+		initTime := time.Now()
+		fmt.Println("Exporting:" + store.name)
 		exporter, err := store.Export(int64(height))
 		if err != nil {
 			return err
 		}
 		defer exporter.Close()
-		fmt.Println("FMT: Exported")
 		err = protoWriter.WriteMsg(&snapshottypes.SnapshotItem{
 			Item: &snapshottypes.SnapshotItem_Store{
 				Store: &snapshottypes.SnapshotStoreItem{
@@ -793,8 +801,6 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 			return err
 		}
 
-		fmt.Println("FMT: Exporting nodes")
-		rs.logger.Debug("Exporting nodes")
 		for {
 			node, err := exporter.Next()
 			if err == iavltree.ExportDone {
@@ -817,6 +823,11 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 			}
 		}
 		exporter.Close()
+
+		diff := time.Since(initTime).Minutes()
+		fmt.Println("Exported:" + store.name + " in " + fmt.Sprintf("%f", diff) + " minutes")
+		total--
+		fmt.Printf("Stores left to export: %d\n", total)
 	}
 
 	return nil
