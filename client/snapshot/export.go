@@ -5,6 +5,9 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/server"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
+	"github.com/cosmos/cosmos-sdk/store/iavl"
+	"github.com/cosmos/cosmos-sdk/types"
+	iavltree "github.com/cosmos/iavl"
 	"github.com/spf13/cobra"
 )
 
@@ -34,6 +37,35 @@ func ExportSnapshotCmd(appCreator servertypes.AppCreator) *cobra.Command {
 				height = app.CommitMultiStore().LastCommitID().Version
 			}
 
+			keyName, _ := cmd.Flags().GetString("key")
+			if keyName != "" {
+				store := app.CommitMultiStore().GetCommitKVStore(types.NewKVStoreKey(keyName))
+				kvStore, ok := store.(*iavl.Store)
+				if !ok {
+					return fmt.Errorf("store %s is not an iavl store", keyName)
+				}
+
+				exporter, err := kvStore.Export(height)
+				if err != nil {
+					return err
+				}
+				defer exporter.Close()
+
+				total := 0
+				for {
+					_, err := exporter.Next()
+					if err == iavltree.ExportDone {
+						break
+					} else if err != nil {
+						return err
+					}
+
+					total += 1
+				}
+
+				ctx.Logger.Debug(fmt.Sprintf("Exported %d nodes", total))
+				return nil
+			}
 			ctx.Logger.Debug("Exporting snapshot", "height", height)
 			fmt.Printf("Exporting snapshot for height %d\n", height)
 
@@ -50,6 +82,7 @@ func ExportSnapshotCmd(appCreator servertypes.AppCreator) *cobra.Command {
 	}
 
 	cmd.Flags().Int64("height", 0, "Height to export, default to latest state height")
+	cmd.Flags().String("key", "", "StoreKey")
 
 	return cmd
 }
