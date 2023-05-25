@@ -755,8 +755,11 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 	for key := range rs.stores {
 		switch store := rs.GetCommitKVStore(key).(type) {
 		case *iavl.Store:
+			if key.Name() == "vesting" {
+				fmt.Println("skip vesting store")
+				continue
+			}
 			fmt.Println("FMT: Store key:" + key.Name())
-			rs.logger.Debug("Store key:" + key.Name())
 			stores = append(stores, namedStore{name: key.Name(), Store: store})
 		case *transient.Store, *mem.Store:
 			// Non-persisted stores shouldn't be snapshotted
@@ -801,6 +804,7 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 			return err
 		}
 
+		total := int64(0)
 		for {
 			node, err := exporter.Next()
 			if err == iavltree.ExportDone {
@@ -821,7 +825,9 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 			if err != nil {
 				return err
 			}
+			total++
 		}
+		fmt.Printf("Total Nodes: %d\n", total)
 		exporter.Close()
 
 		diff := time.Since(initTime).Minutes()
