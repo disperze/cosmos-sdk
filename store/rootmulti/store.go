@@ -804,7 +804,7 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 			return err
 		}
 
-		total := int64(0)
+		totalNodes := int64(0)
 		for {
 			node, err := exporter.Next()
 			if err == iavltree.ExportDone {
@@ -825,9 +825,9 @@ func (rs *Store) Snapshot(height uint64, protoWriter protoio.Writer) error {
 			if err != nil {
 				return err
 			}
-			total++
+			totalNodes++
 		}
-		fmt.Printf("Total Nodes: %d\n", total)
+		fmt.Printf("Total Nodes: %d\n", totalNodes)
 		exporter.Close()
 
 		diff := time.Since(initTime).Minutes()
