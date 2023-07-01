@@ -67,7 +67,7 @@ func ExportSnapshotCmd(appCreator servertypes.AppCreator) *cobra.Command {
 				return nil
 			}
 			ctx.Logger.Debug("Exporting snapshot", "height", height)
-			fmt.Printf("Exporting snapshot for height %d\n", height)
+			cmd.Printf("Exporting snapshot for height %d\n", height)
 
 			sm := app.SnapshotManager()
 			snapshot, err := sm.Create(uint64(height))
@@ -75,8 +75,7 @@ func ExportSnapshotCmd(appCreator servertypes.AppCreator) *cobra.Command {
 				return err
 			}
 
-			ctx.Logger.Info("Snapshot created at height %d, format %d, chunks %d\n", snapshot.Height, snapshot.Format, snapshot.Chunks)
-			fmt.Printf("Snapshot created at height %d, format %d, chunks %d\n", snapshot.Height, snapshot.Format, snapshot.Chunks)
+			cmd.Printf("Snapshot created at height %d, format %d, chunks %d\n", snapshot.Height, snapshot.Format, snapshot.Chunks)
 			return nil
 		},
 	}
