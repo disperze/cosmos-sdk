@@ -99,6 +99,33 @@ func (k Keeper) RevokeAll(ctx context.Context, msg *authz.MsgRevokeAll) (*authz.
 	return &authz.MsgRevokeAllResponse{}, nil
 }
 
+// Reject implements the MsgServer.Reject method.
+func (k Keeper) Reject(ctx context.Context, msg *authz.MsgReject) (*authz.MsgRejectResponse, error) {
+	if strings.EqualFold(msg.Grantee, msg.Granter) {
+		return nil, authz.ErrGranteeIsGranter
+	}
+
+	grantee, err := k.authKeeper.AddressCodec().StringToBytes(msg.Grantee)
+	if err != nil {
+		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid grantee address: %s", err)
+	}
+
+	granter, err := k.authKeeper.AddressCodec().StringToBytes(msg.Granter)
+	if err != nil {
+		return nil, sdkerrors.ErrInvalidAddress.Wrapf("invalid granter address: %s", err)
+	}
+
+	if msg.MsgTypeUrl == "" {
+		return nil, sdkerrors.ErrInvalidRequest.Wrap("missing msg method name")
+	}
+
+	if err = k.DeleteGrant(ctx, grantee, granter, msg.MsgTypeUrl); err != nil {
+		return nil, err
+	}
+
+	return &authz.MsgRejectResponse{}, nil
+}
+
 // Exec implements the MsgServer.Exec method.
 func (k Keeper) Exec(ctx context.Context, msg *authz.MsgExec) (*authz.MsgExecResponse, error) {
 	if msg.Grantee == "" {

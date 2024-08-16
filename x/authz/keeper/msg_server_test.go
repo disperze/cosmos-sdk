@@ -513,3 +513,105 @@ func (suite *TestSuite) TestRevokeAllGrants() {
 		})
 	}
 }
+
+func (suite *TestSuite) TestReject() {
+	addrs := suite.createAccounts()
+
+	grantee, granter := addrs[0], addrs[1]
+	granterStrAddr, err := suite.accountKeeper.AddressCodec().BytesToString(granter)
+	suite.Require().NoError(err)
+	granteeStrAddr, err := suite.accountKeeper.AddressCodec().BytesToString(grantee)
+	suite.Require().NoError(err)
+
+	testCases := []struct {
+		name     string
+		malleate func() *authz.MsgReject
+		expErr   bool
+		errMsg   string
+	}{
+		{
+			name: "identical grantee and granter",
+			malleate: func() *authz.MsgReject {
+				return &authz.MsgReject{
+					Grantee:    granteeStrAddr,
+					Granter:    granteeStrAddr,
+					MsgTypeUrl: bankSendAuthMsgType,
+				}
+			},
+			expErr: true,
+			errMsg: "grantee and granter should be different",
+		},
+		{
+			name: "invalid grantee",
+			malleate: func() *authz.MsgReject {
+				return &authz.MsgReject{
+					Grantee:    "invalid",
+					Granter:    granterStrAddr,
+					MsgTypeUrl: bankSendAuthMsgType,
+				}
+			},
+			expErr: true,
+			errMsg: "invalid bech32 string",
+		},
+		{
+			name: "invalid granter",
+			malleate: func() *authz.MsgReject {
+				return &authz.MsgReject{
+					Grantee:    granteeStrAddr,
+					Granter:    "invalid",
+					MsgTypeUrl: bankSendAuthMsgType,
+				}
+			},
+			expErr: true,
+			errMsg: "invalid bech32 string",
+		},
+		{
+			name: "no msg given",
+			malleate: func() *authz.MsgReject {
+				return &authz.MsgReject{
+					Grantee:    granteeStrAddr,
+					Granter:    granterStrAddr,
+					MsgTypeUrl: "",
+				}
+			},
+			expErr: true,
+			errMsg: "missing msg method name",
+		},
+		{
+			name: "valid grant",
+			malleate: func() *authz.MsgReject {
+				suite.createSendAuthorization(grantee, granter)
+
+				return &authz.MsgReject{
+					Grantee:    granteeStrAddr,
+					Granter:    granterStrAddr,
+					MsgTypeUrl: bankSendAuthMsgType,
+				}
+			},
+		},
+		{
+			name: "no existing grant to revoke",
+			malleate: func() *authz.MsgReject {
+				return &authz.MsgReject{
+					Grantee:    granteeStrAddr,
+					Granter:    granterStrAddr,
+					MsgTypeUrl: bankSendAuthMsgType,
+				}
+			},
+			expErr: true,
+			errMsg: "authorization not found",
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			_, err := suite.msgSrvr.Reject(suite.ctx, tc.malleate())
+			if tc.expErr {
+				suite.Require().Error(err)
+				suite.Require().Contains(err.Error(), tc.errMsg)
+			} else {
+				suite.Require().NoError(err)
+			}
+		})
+	}
+}
